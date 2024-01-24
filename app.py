@@ -38,8 +38,11 @@ def allowed_file(filename):
 
 @app.route("/api/login", methods=["POST"])
 def login():
-    username = request.form["name"]
-    password = request.form["password"]
+    data = request.get_json()
+    if data is None:
+        return jsonify({"msg": "No Data", "flag": False})
+    username = data["name"]
+    password = data["password"]
     user_info = User.query.filter_by(username=username).first()
     if user_info is None:
         return jsonify({"msg": "Username Not Exists", "flag": False})
@@ -59,9 +62,12 @@ def login():
 
 @app.route("/api/register", methods=["POST"])
 def register():
-    username = request.form["name"]
-    password = request.form["password"]
-    email = request.form["email"]
+    data = request.get_json()
+    if data is None:
+        return jsonify({"msg": "No Data", "flag": False})
+    username = data["username"]
+    password = data["password"]
+    email = data.form["email"]
     password_hash = set_password(password)
     user_info = User.query.filter_by(username=username).first()
     if user_info is None:
@@ -78,12 +84,11 @@ def register():
 
 @app.route("/api/wechat_login", methods=["POST"])
 def wechat_login():
-    code = request.form["code"]
-    response = requests.get(wechat_login_api.format(appid, appsecret, code))
-    data = response.json()
-    openid = data["openid"]
-    session_key = data["session_key"]
-    if openid and session_key:
+    data = request.get_json()
+    if data is None:
+        return jsonify({"msg": "No Data", "flag": False})
+    openid = request.headers["x-wx-openid"]
+    if openid:
         user_info = User.query.filter_by(wechat_openid=openid).first()
         if user_info is None:
             user_id = str(uuid.uuid4())
@@ -104,7 +109,10 @@ def wechat_login():
 
 @app.route("/api/upload", methods=["POST"])
 def upload():
-    user_id = request.form["user_id"]
+    data = request.get_json()
+    if data is None:
+        return jsonify({"msg": "No Data", "flag": False})
+    user_id = data["user_id"]
     if "file" not in request.files:
         return jsonify({"msg": "No File Part"})
     file = request.files["file"]
