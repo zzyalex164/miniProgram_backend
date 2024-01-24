@@ -4,7 +4,6 @@ from flask_sqlalchemy import SQLAlchemy
 from config import *
 from model import *
 import pymysql
-import requests
 import uuid
 import datetime
 import sys
@@ -67,7 +66,7 @@ def register():
         return jsonify({"msg": "No Data", "flag": False})
     username = data["username"]
     password = data["password"]
-    email = data.form["email"]
+    email = data["email"]
     password_hash = set_password(password)
     user_info = User.query.filter_by(username=username).first()
     if user_info is None:
@@ -84,9 +83,6 @@ def register():
 
 @app.route("/api/wechat_login", methods=["POST"])
 def wechat_login():
-    data = request.get_json()
-    if data is None:
-        return jsonify({"msg": "No Data", "flag": False})
     openid = request.headers["x-wx-openid"]
     if openid:
         user_info = User.query.filter_by(wechat_openid=openid).first()
