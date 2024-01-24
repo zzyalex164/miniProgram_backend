@@ -16,9 +16,8 @@ class User(db.Model):
 class OralImages(db.Model):
     __tablename__ = "oral_images"
 
-    id = db.Column(db.String(32), primary_key=True)
     user_id = db.Column(db.String(32), db.ForeignKey("user.id"))
-    img_path = db.Column(db.String(128))
+    file_id = db.Column(db.String(32), primary_key=True)
     upload_time = db.Column(db.DateTime, default=datetime.datetime.now)
-    img_desc = db.Column(db.String(128))
+    description = db.Column(db.String(128))
     check_time = db.Column(db.DateTime)

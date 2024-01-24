@@ -11,16 +11,14 @@ import sys
 pymysql.install_as_MySQLdb()
 
 app = Flask(__name__)
+
 app.config[
     "SQLALCHEMY_DATABASE_URI"
 ] = f"mysql://{mysql_username}:{mysql_password}@{mysql_address}/oral"
+
 db = SQLAlchemy(app)
 
 wechat_login_api = "https://api.weixin.qq.com/sns/jscode2session?appid={}&secret={}&js_code={}&grant_type=authorization_code"
-
-img_folder = "img"
-
-ALLOWED_EXTENSIONS = ["png", "jpg", "jpeg", "gif"]
 
 
 def set_password(password):
@@ -29,10 +27,6 @@ def set_password(password):
 
 def check_password(password, hash):
     return check_password_hash(hash, password)
-
-
-def allowed_file(filename):
-    return "." in filename and filename.rsplit(".", 1)[1] in ALLOWED_EXTENSIONS
 
 
 @app.route("/api/login", methods=["POST"])
@@ -109,41 +103,39 @@ def upload():
     if data is None:
         return jsonify({"msg": "No Data", "flag": False})
     user_id = data["user_id"]
-    if "file" not in request.files:
-        return jsonify({"msg": "No File Part"})
-    file = request.files["file"]
-    if file.filename == "":
-        return jsonify({"msg": "No Selected File"})
-    if file and allowed_file(file.filename):
-        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        ext = file.filename.rsplit(".", 1)[1].lower()
-        filename = f"{user_id}_{timestamp}.{ext}"
-        save_path = os.path.join(img_folder, filename)
-        file.save(save_path)
-        img_id = str(uuid.uuid4())
-        img_info = OralImages(id=img_id, user_id=user_id, img_path=save_path)
-        db.session.add(img_info)
-        db.session.commit()
-        return jsonify({"msg": "Upload Success", "flag": True})
-    else:
-        return jsonify({"msg": "Upload Failed", "flag": False})
+    file_id = data["file_id"]
+    id = str(uuid.uuid4())
+    img_info = OralImages(id=id, user_id=user_id, file_id=file_id)
+    db.session.add(img_info)
+    db.session.commit()
+    return jsonify({"msg": "Upload Success", "flag": True})
 
 
-@app.route("/api/get_images", methods=["POST"])
-def get_images():
-    user_id = request.form["user_id"]
+@app.route("/api/get_images", methods=["GET"])
+def get_images(user_id):
+    user_id = request.args.get("user_id", None)
+    if user_id is None:
+        return jsonify({"msg": "No User ID", "flag": False})
     img_list = OralImages.query.filter_by(user_id=user_id).all()
     img_list = [
-        {"img_id": img.id, "img_path": img.upload_time, "checked": img.img_desc is None}
+        {
+            "file_id": img.file_id,
+            "img_path": img.upload_time,
+            "checked": img.img_desc is None,
+        }
         for img in img_list
     ]
     return jsonify({"msg": "Get Images Success", "img_list": img_list, "flag": True})
 
 
-@app.route("/api/get_image/<img_id>", methods=["GET"])
-def get_image(img_id):
+@app.route("/api/get_image", methods=["GET"])
+def get_image():
+    img_id = request.args.get("img_id", None)
+    if img_id is None:
+        return jsonify({"msg": "No Image ID", "flag": False})
     img_info = OralImages.query.filter_by(id=img_id).first()
-    return send_from_directory(img_info.img_path)
+    img_info = {"file_id": img_info.file_id, "description": img_info.description}
+    return jsonify({"msg": "Get Image Success", "img_info": img_info, "flag": True})
 
 
 if __name__ == "__main__":
