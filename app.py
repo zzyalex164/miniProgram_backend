@@ -1,14 +1,14 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from config import *
-from model import *
+from datetime import datetime
 import pymysql
 import uuid
-import datetime
 import sys
 
 pymysql.install_as_MySQLdb()
+
 
 app = Flask(__name__)
 
@@ -18,7 +18,26 @@ app.config[
 
 db = SQLAlchemy(app)
 
-wechat_login_api = "https://api.weixin.qq.com/sns/jscode2session?appid={}&secret={}&js_code={}&grant_type=authorization_code"
+
+class User(db.Model):
+    __tablename__ = "user"
+
+    id = db.Column(db.String(32), primary_key=True)
+    username = db.Column(db.String(64), unique=True, index=True)
+    password_hash = db.Column(db.String(128))
+    email = db.Column(db.String(64), unique=True, index=True)
+    wechat_openid = db.Column(db.String(64), unique=True, index=True)
+    admin = db.Column(db.Boolean, default=False)
+
+
+class OralImages(db.Model):
+    __tablename__ = "oral_images"
+
+    user_id = db.Column(db.String(32), db.ForeignKey("user.id"))
+    file_id = db.Column(db.String(32), primary_key=True)
+    upload_time = db.Column(db.DateTime, default=datetime.now)
+    description = db.Column(db.String(128))
+    check_time = db.Column(db.DateTime)
 
 
 def set_password(password):
