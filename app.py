@@ -3,10 +3,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from config import *
 from model import *
+import pymysql
 import requests
 import uuid
 import datetime
 import sys
+
+pymysql.install_as_MySQLdb()
 
 app = Flask(__name__)
 app.config[
