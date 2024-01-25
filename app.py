@@ -6,9 +6,10 @@ from datetime import datetime
 import pymysql
 import uuid
 import sys
-import email
 import smtplib
+import requests
 import secrets
+import json
 
 pymysql.install_as_MySQLdb()
 
@@ -48,7 +49,7 @@ class OralReport(db.Model):
 
 
 class OralImage(db.Model):
-    __tablename__ = "images"
+    __tablename__ = "image"
 
     image_id = db.Column(db.String(128), primary_key=True)
     report_id = db.Column(db.String(128), db.ForeignKey("report.report_id"))
@@ -291,6 +292,22 @@ def generate_report():
     report_id = request.args.get("report_id", None)
     report_info = OralReport.query.filter_by(report_id=report_id).first()
     images = OralImage.query.filter_by(report_id=report_id).all()
+    file_ids = [image.image_id for image in images]
+    params = {
+        "env": env_id,
+        "file_list": [{"fileid": file_id, "max_age": 7200} for file_id in file_ids],
+    }
+    url = "http://api.weixin.qq.com/tcb/batchdownloadfile"
+    headers = {"Content-Type": "application/json"}
+    response = requests.post(url, data=json.dumps(params), headers=headers).json()
+    file_list = response["file_list"]
+    for file in file_list:
+        download_url = file["download_url"]
+        response = requests.get(download_url)
+        if response.status_code == 200:
+            filename = file["fileid"]
+            with open(filename, "wb") as f:
+                f.write(response.content)
 
 
 if __name__ == "__main__":
