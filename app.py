@@ -278,9 +278,9 @@ def reset_password():
     data = request.get_json()
     if data is None:
         return jsonify({"msg": "No Data", "flag": False})
-    user_id = data["user_id"]
+    email_addr = data["email"]
     new_password = data["new_password"]
-    user_info = User.query.filter_by(id=user_id).first()
+    user_info = User.query.filter_by(email=email_addr).first()
     user_info.password_hash = set_password(new_password)
     db.session.commit()
     return jsonify({"msg": "Reset Password Success", "flag": True})
