@@ -254,10 +254,10 @@ def get_report():
 
 @app.route("/api/send_email", methods=["GET"])
 def send_email():
-    user_id = request.args.get("user_id", None)
-    if user_id is None:
+    email = request.args.get("user_id", None)
+    if email is None:
         return jsonify({"msg": "No User ID", "flag": False})
-    user_info = User.query.filter_by(id=user_id).first()
+    user_info = User.query.filter_by(email=email).first()
     email = user_info.email
     if email is None:
         return jsonify({"msg": "No Email", "flag": False})
