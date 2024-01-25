@@ -254,13 +254,11 @@ def get_report():
 
 @app.route("/api/send_email", methods=["GET"])
 def send_email():
-    email = request.args.get("user_id", None)
-    if email is None:
-        return jsonify({"msg": "No User ID", "flag": False})
-    user_info = User.query.filter_by(email=email).first()
-    email = user_info.email
+    email = request.args.get("email", None)
     if email is None:
         return jsonify({"msg": "No Email", "flag": False})
+    user_info = User.query.filter_by(email=email).first()
+    email = user_info.email
     msg = email.message.EmailMessage()
     captcha = generate_random_int(6)
     msg.set_content(f"您的验证码为{captcha}，请在5分钟内输入。")
