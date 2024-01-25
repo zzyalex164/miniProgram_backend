@@ -6,6 +6,9 @@ from datetime import datetime
 import pymysql
 import uuid
 import sys
+import email
+import smtplib
+import secrets
 
 pymysql.install_as_MySQLdb()
 
@@ -57,6 +60,12 @@ def set_password(password):
 
 def check_password(password, hash):
     return check_password_hash(hash, password)
+
+
+def generate_random_int(digits):
+    min_value = 10 ** (digits - 1)
+    max_value = 10**digits - 1
+    return secrets.randbelow(max_value - min_value + 1) + min_value
 
 
 @app.route("/api/login", methods=["POST"])
@@ -147,9 +156,13 @@ def upload():
 @app.route("/api/get_reports", methods=["GET"])
 def get_reports():
     user_id = request.args.get("user_id", None)
+    admin = request.args.get("admin", None)
     if user_id is None:
         return jsonify({"msg": "No User ID", "flag": False})
-    report_list = OralReport.query.filter_by(user_id=user_id).all()
+    if admin:
+        report_list = OralReport.query.all()
+    else:
+        report_list = OralReport.query.filter_by(user_id=user_id).all()
     report_list = [
         {
             "report_id": report.report_id,
@@ -236,6 +249,41 @@ def get_report():
     return jsonify(
         {"msg": "Get Report Success", "report_info": report_info, "flag": True}
     )
+
+
+@app.route("/api/send_email", methods=["GET"])
+def send_email():
+    user_id = request.args.get("user_id", None)
+    if user_id is None:
+        return jsonify({"msg": "No User ID", "flag": False})
+    user_info = User.query.filter_by(id=user_id).first()
+    email = user_info.email
+    if email is None:
+        return jsonify({"msg": "No Email", "flag": False})
+    msg = email.message.EmailMessage()
+    captcha = generate_random_int(6)
+    msg.set_content(f"您的验证码为{captcha}，请在5分钟内输入。")
+    msg["Subject"] = "慧牙E密码重置"
+    msg["From"] = mail_sender
+    msg["To"] = email
+    server = smtplib.SMTP_SSL("smtp.qq.com", 465)
+    server.login(mail_sender, mail_password)
+    server.send_message(msg)
+    server.quit()
+    return jsonify({"msg": "Send Email Success", "captcha": captcha, "flag": True})
+
+
+@app.route("/api/reset_password", methods=["POST"])
+def reset_password():
+    data = request.get_json()
+    if data is None:
+        return jsonify({"msg": "No Data", "flag": False})
+    user_id = data["user_id"]
+    new_password = data["new_password"]
+    user_info = User.query.filter_by(id=user_id).first()
+    user_info.password_hash = set_password(new_password)
+    db.session.commit()
+    return jsonify({"msg": "Reset Password Success", "flag": True})
 
 
 @app.route("/api/generate_report", methods=["GET"])
