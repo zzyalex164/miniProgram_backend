@@ -200,6 +200,23 @@ def update_basic_info():
     return jsonify({"msg": "Update Basic Info Success", "flag": True})
 
 
+@app.route("/api/check_report", methods=["POST"])
+def check_report():
+    data = request.get_json()
+    if data is None:
+        return jsonify({"msg": "No Data", "flag": False})
+    admin = data["admin"]
+    if not admin:
+        return jsonify({"msg": "No Permission", "flag": False})
+    report_id = data["report_id"]
+    description = data["description"]
+    report_info = OralReport.query.filter_by(report_id=report_id).first()
+    report_info.description = description
+    report_info.check_time = datetime.now()
+    db.session.commit()
+    return jsonify({"msg": "Check Report Success", "flag": True})
+
+
 @app.route("/api/get_report", methods=["GET"])
 def get_report():
     report_id = request.args.get("report_id", None)
