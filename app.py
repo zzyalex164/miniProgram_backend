@@ -64,7 +64,7 @@ def login():
     data = request.get_json()
     if data is None:
         return jsonify({"msg": "No Data", "flag": False})
-    username = data["name"]
+    username = data["username"]
     password = data["password"]
     user_info = User.query.filter_by(username=username).first()
     if user_info is None:
@@ -133,7 +133,7 @@ def upload():
     if data is None:
         return jsonify({"msg": "No Data", "flag": False})
     user_id = data["user_id"]
-    file_ids = data["file_id"]
+    file_ids = data["file_ids"]
     report_id = str(uuid.uuid4())
     report_info = OralReport(user_id=user_id, report_id=report_id)
     db.session.add(report_info)
@@ -225,21 +225,24 @@ def get_report():
     report_info = OralReport.query.filter_by(report_id=report_id).first()
     images = OralImage.query.filter_by(report_id=report_id).all()
     report_info = {
+        "msg": "Get Report Success",
         "report_id": report_info.report_id,
         "upload_time": report_info.upload_time,
         "description": report_info.description,
         "check_time": report_info.check_time,
         "images": [image.image_id for image in images],
+        "flag": True,
     }
     return jsonify(
         {"msg": "Get Report Success", "report_info": report_info, "flag": True}
     )
 
 
-@app.route("/api/genereate_report", methods=["GET"])
-def genereate_report():
+@app.route("/api/generate_report", methods=["GET"])
+def generate_report():
     report_id = request.args.get("report_id", None)
     report_info = OralReport.query.filter_by(report_id=report_id).first()
+    images = OralImage.query.filter_by(report_id=report_id).all()
 
 
 if __name__ == "__main__":
