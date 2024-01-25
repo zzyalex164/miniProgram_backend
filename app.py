@@ -8,6 +8,7 @@ import uuid
 import sys
 import smtplib
 import requests
+import email
 import secrets
 import json
 
@@ -254,17 +255,17 @@ def get_report():
 
 @app.route("/api/send_email", methods=["GET"])
 def send_email():
-    email = request.args.get("email", None)
-    if email is None:
+    email_addr = request.args.get("email", None)
+    if email_addr is None:
         return jsonify({"msg": "No Email", "flag": False})
-    user_info = User.query.filter_by(email=email).first()
-    email = user_info.email
+    user_info = User.query.filter_by(email=email_addr).first()
+    email_addr = user_info.email
     msg = email.message.EmailMessage()
     captcha = generate_random_int(6)
     msg.set_content(f"您的验证码为{captcha}，请在5分钟内输入。")
     msg["Subject"] = "慧牙E密码重置"
     msg["From"] = mail_sender
-    msg["To"] = email
+    msg["To"] = email_addr
     server = smtplib.SMTP_SSL("smtp.qq.com", 465)
     server.login(mail_sender, mail_password)
     server.send_message(msg)
