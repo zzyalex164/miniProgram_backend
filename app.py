@@ -158,11 +158,11 @@ def upload():
 @app.route("/api/get_reports", methods=["GET"])
 def get_reports():
     user_id = request.args.get("user_id", None)
-    admin = request.args.get("admin", None, type=bool)
+    admin = request.args.get("admin", None)
+    admin = True if admin == "true" else False
     if user_id is None:
         return jsonify({"msg": "No User ID", "flag": False})
     if admin:
-        print(admin)
         report_list = OralReport.query.all()
     else:
         report_list = OralReport.query.filter_by(user_id=user_id).all()
