@@ -158,7 +158,7 @@ def upload():
 @app.route("/api/get_reports", methods=["GET"])
 def get_reports():
     user_id = request.args.get("user_id", None)
-    admin = request.args.get("admin", None)
+    admin = request.args.get("admin", None, type=bool)
     if user_id is None:
         return jsonify({"msg": "No User ID", "flag": False})
     if admin:
