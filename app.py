@@ -162,6 +162,7 @@ def get_reports():
     if user_id is None:
         return jsonify({"msg": "No User ID", "flag": False})
     if admin:
+        print(admin)
         report_list = OralReport.query.all()
     else:
         report_list = OralReport.query.filter_by(user_id=user_id).all()
@@ -169,7 +170,7 @@ def get_reports():
         {
             "report_id": report.report_id,
             "upload_time": report.upload_time,
-            "checked": report.description is None,
+            "checked": report.description is not None,
         }
         for report in report_list
     ]
