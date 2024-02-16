@@ -12,14 +12,15 @@ import email
 import secrets
 import json
 
+
 pymysql.install_as_MySQLdb()
 
 
 app = Flask(__name__)
 
-app.config[
-    "SQLALCHEMY_DATABASE_URI"
-] = f"mysql://{mysql_username}:{mysql_password}@{mysql_address}/oral"
+app.config["SQLALCHEMY_DATABASE_URI"] = (
+    f"mysql://{mysql_username}:{mysql_password}@{mysql_address}/oral"
+)
 
 db = SQLAlchemy(app)
 
@@ -303,11 +304,13 @@ def generate_report():
     file_list = response["file_list"]
     for file in file_list:
         download_url = file["download_url"]
+        app.logger.info("Downloading file: %s", download_url)
         response = requests.get(download_url)
         if response.status_code == 200:
             filename = file["fileid"]
             with open(filename, "wb") as f:
                 f.write(response.content)
+            app.logger.info("Downloaded file: %s", filename)
 
 
 if __name__ == "__main__":
