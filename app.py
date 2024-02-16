@@ -296,7 +296,9 @@ def generate_report():
     file_ids = [image.image_id for image in images]
     params = {
         "env": env_id,
-        "file_list": [{"fileid": file_id, "max_age": 7200} for file_id in file_ids],
+        "file_list": [
+            {"fileid": "cloud://" + file_id, "max_age": 7200} for file_id in file_ids
+        ],
     }
     url = "http://api.weixin.qq.com/tcb/batchdownloadfile"
     headers = {"Content-Type": "application/json"}
@@ -304,7 +306,7 @@ def generate_report():
     file_list = response["file_list"]
     for file in file_list:
         download_url = file["download_url"]
-        app.logger.info("Downloading file: %s", download_url)
+        app.logger.info("Downloading file from url: %s", download_url)
         response = requests.get(download_url)
         if response.status_code == 200:
             filename = file["fileid"]
