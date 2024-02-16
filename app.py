@@ -303,6 +303,7 @@ def generate_report():
     url = "http://api.weixin.qq.com/tcb/batchdownloadfile"
     headers = {"Content-Type": "application/json"}
     response = requests.post(url, data=json.dumps(params), headers=headers).json()
+    print(response)
     file_list = response["file_list"]
     for file in file_list:
         download_url = file["download_url"]
