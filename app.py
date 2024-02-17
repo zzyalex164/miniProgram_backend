@@ -310,15 +310,15 @@ def generate_report():
         for file in file_list:
             download_url = file["download_url"]
             app.logger.info("Downloading file from url: %s", download_url)
-            response = requests.get(download_url)
-            if response.status_code == 200:
-                filename = file["fileid"]
-                with open(filename, "wb") as f:
-                    f.write(response.content)
-                app.logger.info("Downloaded file: %s", filename)
+            # response = requests.get(download_url)
+            # if response.status_code == 200:
+            #     filename = file["fileid"]
+            #     with open(filename, "wb") as f:
+            #         f.write(response.content)
+            #     app.logger.info("Downloaded file: %s", filename)
     else:
         errmsg = response["errmsg"]
-        app.logger.error("Error: %s", errmsg)
+        app.logger.error(errmsg)
 
 
 if __name__ == "__main__":
