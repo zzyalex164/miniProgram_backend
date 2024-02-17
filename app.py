@@ -11,7 +11,7 @@ import requests
 import email
 import secrets
 import json
-
+import reportlab
 
 pymysql.install_as_MySQLdb()
 
@@ -297,13 +297,13 @@ def generate_report():
     params = {
         "env": env_id,
         "file_list": [
-            {"fileid": "cloud://" + file_id, "max_age": 7200} for file_id in file_ids
+            {"fileid": f"cloud://{cos_bucket}/{file_id}", "max_age": 7200}
+            for file_id in file_ids
         ],
     }
     url = "http://api.weixin.qq.com/tcb/batchdownloadfile"
     headers = {"Content-Type": "application/json"}
     response = requests.post(url, data=json.dumps(params), headers=headers).json()
-    print(response)
     file_list = response["file_list"]
     for file in file_list:
         download_url = file["download_url"]
