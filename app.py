@@ -307,6 +307,7 @@ def generate_report():
     errcode = response["errcode"]
     if errcode == 0:
         file_list = response["file_list"]
+        app.logger.info("Downloaded file list: %s", file_list)
         for file in file_list:
             download_url = file["download_url"]
             app.logger.info("Downloading file from url: %s", download_url)
