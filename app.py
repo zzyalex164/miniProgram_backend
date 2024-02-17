@@ -316,9 +316,11 @@ def generate_report():
             #     with open(filename, "wb") as f:
             #         f.write(response.content)
             #     app.logger.info("Downloaded file: %s", filename)
+        return jsonify({"msg": "Generate Report Success", "flag": True})
     else:
         errmsg = response["errmsg"]
         app.logger.error(errmsg)
+        return jsonify({"msg": "Error occurred", "flag": False})
 
 
 if __name__ == "__main__":
