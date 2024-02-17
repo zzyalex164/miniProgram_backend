@@ -307,16 +307,15 @@ def generate_report():
     errcode = response["errcode"]
     if errcode == 0:
         file_list = response["file_list"]
-        app.logger.info("Downloaded file list: %s", file_list)
         for file in file_list:
             download_url = file["download_url"]
             app.logger.info("Downloading file from url: %s", download_url)
-            # response = requests.get(download_url)
-            # if response.status_code == 200:
-            #     filename = file["fileid"]
-            #     with open(filename, "wb") as f:
-            #         f.write(response.content)
-            #     app.logger.info("Downloaded file: %s", filename)
+            response = requests.get(download_url)
+            if response.status_code == 200:
+                filename = file["fileid"]
+                with open(filename, "wb") as f:
+                    f.write(response.content)
+                app.logger.info("Downloaded file: %s", filename)
         return jsonify({"msg": "Generate Report Success", "flag": True})
     else:
         errmsg = response["errmsg"]
