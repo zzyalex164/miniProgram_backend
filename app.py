@@ -476,7 +476,13 @@ def generate_report():
                 data=upload_data,
                 files={"file": f},
             )
-        return jsonify({"msg": "Generate Report Success", "flag": True})
+        return jsonify(
+            {
+                "msg": "Generate Report Success",
+                "file_id": f"{env_id}/{cos_bucket}/{path}",
+                "flag": True,
+            }
+        )
     else:
         errmsg = response["errmsg"]
         app.logger.error(errmsg)
