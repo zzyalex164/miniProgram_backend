@@ -11,7 +11,12 @@ import requests
 import email
 import secrets
 import json
-import reportlab
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics
+from reportlab.lib.pagesizes import A4
+import reportlab.rl_config
+from textwrap import wrap
 
 pymysql.install_as_MySQLdb()
 
@@ -69,6 +74,105 @@ def generate_random_int(digits):
     min_value = 10 ** (digits - 1)
     max_value = 10**digits - 1
     return secrets.randbelow(max_value - min_value + 1) + min_value
+
+
+def color(r, g, b):
+    return r / 255, g / 255, b / 255
+
+
+def draw_underlined_text(c, x, y, label, text):
+    label_width = c.stringWidth(label)
+    line_start = x + label_width
+    text_width = c.stringWidth(text)
+    line_end = line_start + text_width + 40
+    c.drawString(x, y, label)
+    c.line(line_start, y - 2, line_end, y - 2)
+    c.setFont("simsun", 14)
+    c.drawString(line_start + 20, y + 1, text)
+    c.setFont("simhei", 16)
+    return line_end
+
+
+def create_report(report_info):
+    pdfmetrics.registerFont(TTFont("simhei", "simhei.ttf"))
+    pdfmetrics.registerFont(TTFont("simsun", "simsun.ttc"))
+
+    width, height = A4
+
+    c = canvas.Canvas("report.pdf", pagesize=A4)
+    c.setFont("simhei", 26)
+    c.setFillColorRGB(*color(45, 36, 31))
+    c.drawImage("logo.png", 30, height - 55, width=28, height=28, mask="auto")
+    c.drawString(70, height - 50, report_info["title"])
+    c.setLineWidth(2)
+    c.setStrokeColorRGB(*color(226, 205, 188))
+    c.line(30, height - 60, width - 30, height - 60)
+    c.setFont("simhei", 16)
+    c.setFillColorRGB(*color(45, 36, 31))
+    c.setLineWidth(1)
+    c.setStrokeColorRGB(*color(45, 36, 31))
+    next_start = (
+        draw_underlined_text(c, 30, height - 86, "姓名：", report_info["name"]) + 20
+    )
+    next_start = (
+        draw_underlined_text(
+            c, next_start, height - 86, "联系电话：", report_info["telephone"]
+        )
+        + 10
+    )
+    next_start = draw_underlined_text(
+        c, 30, height - 116, "电子邮箱：", report_info["email"]
+    )
+    next_start = draw_underlined_text(
+        c, 30, height - 146, "报告编号：", report_info["report_id"]
+    )
+    next_start = draw_underlined_text(
+        c, 30, height - 176, "报告生成时间：", report_info["report_time"]
+    )
+
+    c.setStrokeColorRGB(*color(226, 205, 188))
+    c.setLineWidth(2)
+    c.line(30, height - 190, width - 30, height - 190)
+
+    c.setFont("simhei", 20)
+    c.setFillColorRGB(*color(177, 122, 125))
+    c.drawString(30, height - 220, "口腔图片")
+    c.setFont("simhei", 16)
+    c.setFillColorRGB(*color(45, 36, 31))
+    c.drawString(150, height - 220, "上传时间：")
+    c.setFont("simsun", 16)
+    c.drawString(230, height - 220, report_info["upload_time"])
+
+    for i in range(3):
+        c.drawImage(f"{i}.png", 30 + i * 190, height - 400, width=160, height=160)
+
+    c.setFont("simhei", 20)
+    c.setFillColorRGB(*color(177, 122, 125))
+    c.drawString(30, height - 430, "检查结果")
+    c.setFont("simhei", 16)
+    c.setFillColorRGB(*color(45, 36, 31))
+    c.drawString(150, height - 430, "检查时间：")
+    c.setFont("simsun", 16)
+    c.drawString(230, height - 430, report_info["check_time"])
+    c.setFont("simsun", 14)
+    c.setFillColorRGB(*color(45, 36, 31))
+    c.setStrokeColorRGB(*color(45, 36, 31))
+    c.setLineWidth(1.5)
+    c.rect(30, height - 700, width - 60, 250, fill=0)
+    description = c.beginText()
+    description.setTextOrigin(40, height - 470)
+    description.setFont("simsun", 14)
+    description.setFillColorRGB(*color(45, 36, 31))
+    wrapped_text = wrap(report_info["description"], width=42)
+    for line in wrapped_text:
+        description.textLine(line)
+    c.drawText(description)
+
+    c.setFont("simhei", 16)
+    c.setFillColorRGB(*color(255, 0, 0))
+    c.drawString(30, 30, "注：检查结果仅供参考，如遇到口腔健康问题请及时就医")
+    c.showPage()
+    c.save()
 
 
 @app.route("/api/login", methods=["POST"])
@@ -297,7 +401,7 @@ def generate_report():
     params = {
         "env": env_id,
         "file_list": [
-            {"fileid": f"cloud://{cos_bucket}/{file_id}", "max_age": 7200}
+            {"fileid": f"cloud://{env_id}.{cos_bucket}/{file_id}", "max_age": 7200}
             for file_id in file_ids
         ],
     }
@@ -305,17 +409,73 @@ def generate_report():
     headers = {"Content-Type": "application/json"}
     response = requests.post(url, data=json.dumps(params), headers=headers).json()
     errcode = response["errcode"]
+    current_report_id = ""
     if errcode == 0:
         file_list = response["file_list"]
         for file in file_list:
+            status = file["status"]
+            if status != 0:
+                errmsg = file["errmsg"]
+                app.logger.error(errmsg)
+                return jsonify({"msg": "Error occurred", "flag": False})
             download_url = file["download_url"]
-            app.logger.info("Downloading file from url: %s", download_url)
             response = requests.get(download_url)
             if response.status_code == 200:
-                filename = file["fileid"]
+                filename = file["fileid"].split("/")[-1]
+                current_report_id = file["fileid"].split("/")[-2]
                 with open(filename, "wb") as f:
                     f.write(response.content)
-                app.logger.info("Downloaded file: %s", filename)
+    else:
+        errmsg = response["errmsg"]
+        app.logger.error(errmsg)
+        return jsonify({"msg": "Error occurred", "flag": False})
+    uid = report_info.user_id
+    user_info = User.query.filter_by(id=uid).first()
+    report_info = {
+        "title": "慧牙E口腔健康检测报告",
+        "name": user_info.name if user_info.name is not None else "未填写",
+        "telephone": (
+            user_info.telephone if user_info.telephone is not None else "未填写"
+        ),
+        "email": user_info.email if user_info.email is not None else "未填写",
+        "report_id": report_info.report_id,
+        "report_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "upload_time": report_info.upload_time.strftime("%Y-%m-%d %H:%M:%S"),
+        "check_time": (
+            report_info.check_time.strftime("%Y-%m-%d %H:%M:%S")
+            if report_info.check_time is not None
+            else "未检查"
+        ),
+        "description": (
+            report_info.description if report_info.description is not None else "未检查"
+        ),
+    }
+    create_report(report_info)
+    path = f"{uid}/{current_report_id}/report.pdf"
+    upload_params = {
+        "env": env_id,
+        "path": path,
+    }
+    url = "http://api.weixin.qq.com/tcb/uploadfile"
+    headers = {"Content-Type": "application/json"}
+    response = requests.post(
+        url, data=json.dumps(upload_params), headers=headers
+    ).json()
+    errcode = response["errcode"]
+    if errcode == 0:
+        upload_url = response["url"]
+        with open("report.pdf", "rb") as f:
+            upload_data = {
+                "key": path,
+                "Signature": response["authorization"],
+                "x-cos-security-token": response["token"],
+                "x-cos-meta-field": response["cos_file_id"],
+            }
+            requests.post(
+                url=upload_url,
+                data=upload_data,
+                files={"file": f},
+            )
         return jsonify({"msg": "Generate Report Success", "flag": True})
     else:
         errmsg = response["errmsg"]
