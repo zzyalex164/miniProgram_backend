@@ -479,7 +479,7 @@ def generate_report():
         return jsonify(
             {
                 "msg": "Generate Report Success",
-                "file_id": f"cloud://{env_id}/{cos_bucket}/{path}",
+                "file_id": f"cloud://{env_id}.{cos_bucket}/{path}",
                 "flag": True,
             }
         )
